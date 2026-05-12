@@ -12,7 +12,7 @@ const statusEl = $("status");
 
 // Must match TLC_VERSION in content.js — used by the ping handshake to detect
 // a stale content script that survived an extension reload.
-const EXPECTED_VERSION = "0.5.0-cleanup";
+const EXPECTED_VERSION = "0.0.1";
 
 function clearStatus() {
   statusEl.textContent = "";

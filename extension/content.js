@@ -19,7 +19,7 @@
   // Bump on every behavioural change. popup.js compares against this via the
   // ping handshake and triggers a tab reload if the values don't match — that
   // is the only reliable way to evict a previously-injected stale listener.
-  const TLC_VERSION = "0.5.0-cleanup";
+  const TLC_VERSION = "0.0.1";
 
   // If a previous run registered a listener under this key, drop it before we
   // register the new one. This keeps re-injections idempotent.

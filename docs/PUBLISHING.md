@@ -163,4 +163,4 @@ Required by Chrome Web Store:
 
 - Update README's installation section to mention the public Chrome Web Store
   / Edge Add-ons URLs in addition to "Load unpacked".
-- Tag the released commit (`git tag v0.5.0 && git push --tags`).
+- Tag the released commit (`gh release create vX.Y.Z teams-log-collector-extension.zip`).
