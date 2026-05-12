@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Icon PNG generator — Teams Log Collector</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 32px auto; padding: 0 16px; line-height: 1.5; }
+    h1 { font-size: 18px; }
+    button { padding: 8px 16px; font-size: 14px; cursor: pointer; }
+    .row { display: flex; gap: 12px; align-items: center; margin: 8px 0; }
+    img { background: #ddd; image-rendering: pixelated; }
+    code { background: #f4f4f4; padding: 1px 5px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Generate PNG icons from <code>icon.svg</code></h1>
+  <p>
+    Open this file directly from the filesystem (double-click it).
+    Press <b>Generate</b>, then save each PNG into this same folder.
+    Chrome and Edge expect <code>icon16.png</code>, <code>icon32.png</code>,
+    <code>icon48.png</code>, <code>icon128.png</code>.
+  </p>
+  <button id="go">Generate</button>
+  <div id="out"></div>
+
+  <script>
+    const SIZES = [16, 32, 48, 128];
+
+    async function renderSize(svgUrl, size) {
+      const img = new Image();
+      img.src = svgUrl;
+      await new Promise((res, rej) => {
+        img.onload = res;
+        img.onerror = () => rej(new Error("Could not load " + svgUrl));
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, size, size);
+      return new Promise((res) => canvas.toBlob(res, "image/png"));
+    }
+
+    document.getElementById("go").addEventListener("click", async () => {
+      const out = document.getElementById("out");
+      out.innerHTML = "";
+      for (const size of SIZES) {
+        const blob = await renderSize("./icon.svg", size);
+        const url = URL.createObjectURL(blob);
+        const row = document.createElement("div");
+        row.className = "row";
+        const img = document.createElement("img");
+        img.src = url;
+        img.width = size;
+        img.height = size;
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `icon${size}.png`;
+        a.textContent = `Download icon${size}.png`;
+        row.appendChild(img);
+        row.appendChild(a);
+        out.appendChild(row);
+      }
+    });
+  </script>
+</body>
+</html>

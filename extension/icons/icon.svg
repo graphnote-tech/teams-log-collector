@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background square (Teams purple) -->
+  <rect width="128" height="128" rx="22" fill="#6264a7"/>
+
+  <!-- Chat bubble -->
+  <path
+    d="M 28 28
+       h 56
+       a 12 12 0 0 1 12 12
+       v 32
+       a 12 12 0 0 1 -12 12
+       h -28
+       l -16 14
+       v -14
+       h -12
+       a 12 12 0 0 1 -12 -12
+       v -32
+       a 12 12 0 0 1 12 -12 z"
+    fill="#ffffff"/>
+
+  <!-- Download arrow inside bubble -->
+  <g transform="translate(56 38)" fill="none" stroke="#6264a7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="0" y1="0" x2="0" y2="26"/>
+    <polyline points="-12,16 0,28 12,16"/>
+    <line x1="-14" y1="36" x2="14" y2="36"/>
+  </g>
+</svg>
