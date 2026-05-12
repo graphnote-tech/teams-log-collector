@@ -1,0 +1,10 @@
+# Extension upload package (regenerate per docs/PUBLISHING.md)
+teams-log-collector-extension.zip
+*.zip
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
