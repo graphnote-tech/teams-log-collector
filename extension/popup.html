@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Teams Log Collector</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>Teams Log Collector</h1>
+
+  <label for="chat">Chat URL / ID / Name</label>
+  <input id="chat" type="text"
+    placeholder="https://teams.microsoft.com/l/message/19%3A...%40thread.v2/...">
+  <div class="hint">
+    Pasting a URL copied from Teams ("Copy link to chat") is the most reliable
+    option. A raw ID like <code>19:xxx@thread.v2</code> also works. Name search
+    only works when the Graph token has <code>Chat.Read</code>.
+  </div>
+
+  <div class="row">
+    <div>
+      <label for="from">From</label>
+      <input id="from" type="date">
+    </div>
+    <div>
+      <label for="to">To</label>
+      <input id="to" type="date">
+    </div>
+  </div>
+
+  <label for="nameOverride">Filename label (optional)</label>
+  <input id="nameOverride" type="text" placeholder="e.g. Sales team — overrides the auto-detected label">
+  <div class="hint">
+    When the Teams internal API is used, the chat name can't always be resolved.
+    Set a label here to get a human-readable filename.
+  </div>
+
+  <details>
+    <summary>Advanced</summary>
+    <label for="token">Manual Graph access token</label>
+    <textarea id="token" rows="3"
+      placeholder="eyJ0eXAi... (paste from Microsoft Graph Explorer)"></textarea>
+    <label class="checkbox">
+      <input type="checkbox" id="useTeamsApi">
+      Skip Graph; use the Teams internal API directly (experimental)
+    </label>
+  </details>
+
+  <div class="buttons">
+    <button id="run">Collect</button>
+    <button id="diagnose" class="secondary">Diagnose</button>
+    <button id="clear" class="secondary">Clear</button>
+  </div>
+
+  <pre id="status">Ready.</pre>
+
+  <script src="popup.js"></script>
+</body>
+</html>
