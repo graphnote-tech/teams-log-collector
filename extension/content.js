@@ -382,6 +382,48 @@
     return null;
   }
 
+  // Retry-aware GET against Teams messaging service. Honors Retry-After on
+  // 429/503 and falls back to capped exponential backoff. Bounded to 6 tries
+  // so a persistently-throttled chat surfaces as a clear error instead of
+  // looping forever.
+  async function teamsFetchJson(url, skypeToken) {
+    let attempt = 0;
+    while (true) {
+      const res = await fetch(url, {
+        headers: {
+          // NOT "Authorization". Teams' messaging service rejects Bearer here.
+          Authentication: `skypetoken=${skypeToken}`,
+          BehaviorOverride: "redirectAs404",
+        },
+      });
+      if (res.status === 429 || res.status === 503) {
+        attempt++;
+        if (attempt > 6) {
+          const body = await res.text().catch(() => "");
+          const err = new Error(`Teams ${res.status} after ${attempt} retries`);
+          err.status = res.status;
+          err.body = body;
+          throw err;
+        }
+        const retryAfter = Number(res.headers.get("Retry-After"));
+        const wait =
+          Number.isFinite(retryAfter) && retryAfter > 0
+            ? retryAfter * 1000
+            : Math.min(30000, 1000 * 2 ** attempt);
+        await sleep(wait);
+        continue;
+      }
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        const err = new Error(`Teams ${res.status}`);
+        err.status = res.status;
+        err.body = body;
+        throw err;
+      }
+      return res.json();
+    }
+  }
+
   /**
    * Hit one page of /v1/users/ME/conversations/{thread}/messages.
    * `endpointBase` is either a region name ("apac") or a full URL
@@ -395,21 +437,12 @@
     const url = `${base}/v1/users/ME/conversations/${encodeURIComponent(
       threadId
     )}/messages?${qs}`;
-    const res = await fetch(url, {
-      headers: {
-        // NOT "Authorization". Teams' messaging service rejects Bearer here.
-        Authentication: `skypetoken=${skypeToken}`,
-        BehaviorOverride: "redirectAs404",
-      },
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      const err = new Error(`Teams ${res.status} (${endpointBase})`);
-      err.status = res.status;
-      err.body = body;
-      throw err;
+    try {
+      return await teamsFetchJson(url, skypeToken);
+    } catch (e) {
+      if (e.status) e.message = `Teams ${e.status} (${endpointBase})`;
+      throw e;
     }
-    return res.json();
   }
 
   /** Figure out which messaging region serves this thread. */
@@ -531,14 +564,12 @@
         data._links?.next ||
         data["@odata.nextLink"];
       if (nextSync && /^https?:\/\//.test(nextSync)) {
-        const res = await fetch(nextSync, {
-          headers: {
-            Authentication: `skypetoken=${skypeToken}`,
-            BehaviorOverride: "redirectAs404",
-          },
-        });
-        if (!res.ok) break;
-        const next = await res.json();
+        let next;
+        try {
+          next = await teamsFetchJson(nextSync, skypeToken);
+        } catch {
+          break;
+        }
         const nextBatch = next.messages || [];
         if (!nextBatch.length) break;
         startTime = new Date(
