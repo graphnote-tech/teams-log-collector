@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Teams Log Collector",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Export Microsoft Teams group-chat or 1:1-chat messages to JSON. No admin rights required.",
   "permissions": ["storage", "scripting"],
   "host_permissions": [
