@@ -506,24 +506,28 @@
 
     const kept = [];
     let page = 0;
-    let startTime = toDate ? toDate.getTime() : Date.now();
-    let done = false;
+    // Backward cursor for paging into history: each page asks for messages
+    // strictly older than `endTime`. `null` on page 1 = "no upper bound, give
+    // me the latest". `syncState`-style cursors from `_metadata` proved
+    // useless for going backward (they pin to a fixed sync window and return
+    // the same batch indefinitely), so we drive paging ourselves.
+    let endTime = toDate ? toDate.getTime() : null;
+    let prevOldestMs = null;
 
-    while (!done) {
+    while (true) {
       page++;
-      // First page: no startTime constraint so we get the latest messages.
-      // Subsequent pages: walk backwards via startTime.
-      const params =
-        page === 1
-          ? {
-              pageSize: 200,
-              view: "msnp24Equivalent|supportsMessageProperties",
-            }
-          : {
-              pageSize: 200,
-              startTime: String(startTime),
-              view: "msnp24Equivalent|supportsMessageProperties",
-            };
+      const params = {
+        pageSize: 200,
+        view: "msnp24Equivalent|supportsMessageProperties",
+      };
+      // Teams rejects EndTime without StartTime ("errorCode 201"). Use 0
+      // (epoch) as the lower bound so the upper bound is what actually drives
+      // backward paging.
+      if (endTime != null) {
+        params.startTime = "0";
+        params.endTime = String(endTime);
+      }
+
       let data;
       try {
         data = await teamsFetchPage(endpoint, threadId, skypeToken, params);
@@ -553,38 +557,24 @@
         oldest: pageOldest?.toISOString(),
       });
 
-      if (fromDate && pageOldest && pageOldest < fromDate) {
-        done = true;
+      if (fromDate && pageOldest && pageOldest < fromDate) break;
+
+      // Safety net: if the API ignores `endTime` (parameter name might be
+      // different in some Teams API versions), the next page will arrive
+      // with the same oldest message and we'd loop forever. Break instead.
+      const pageOldestMs = pageOldest ? pageOldest.getTime() : null;
+      if (
+        prevOldestMs != null &&
+        pageOldestMs != null &&
+        pageOldestMs >= prevOldestMs
+      ) {
         break;
       }
-      // Advance: prefer the sync link from `_metadata`, else step `startTime`
-      // backwards by the page's oldest message timestamp.
-      const nextSync =
-        data._metadata?.syncState ||
-        data._links?.next ||
-        data["@odata.nextLink"];
-      if (nextSync && /^https?:\/\//.test(nextSync)) {
-        let next;
-        try {
-          next = await teamsFetchJson(nextSync, skypeToken);
-        } catch {
-          break;
-        }
-        const nextBatch = next.messages || [];
-        if (!nextBatch.length) break;
-        startTime = new Date(
-          teamsMessageNormalize(nextBatch[nextBatch.length - 1]).createdDateTime
-        ).getTime();
-        continue;
-      }
-      if (pageOldest) {
-        const newStart = pageOldest.getTime() - 1;
-        if (newStart >= startTime) break; // avoid infinite loop on no-progress
-        startTime = newStart;
-      } else {
-        break;
-      }
-      await sleep(150);
+      prevOldestMs = pageOldestMs;
+
+      if (!pageOldest) break;
+      endTime = pageOldest.getTime() - 1;
+      await sleep(500);
     }
     return kept.sort((a, b) =>
       a.createdDateTime.localeCompare(b.createdDateTime)
